@@ -19,7 +19,7 @@ rag_manager = rag.RAGManager(
 # --- Constants & Logging ---
 MODEL_NAME = "qwen2.5:7b"
 EMBED_MODEL = "nomic-embed-text"
-log_dir = "log"
+log_dir = "log/main"
 if not os.path.exists(log_dir):os.makedirs(log_dir)
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_filename = os.path.join(log_dir, f"chat_debug_{current_time}.log")
