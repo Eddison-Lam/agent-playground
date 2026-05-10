@@ -13,4 +13,5 @@ wheels/
 my_mem
 
 # Logs
+log/
 *.log
