@@ -10,6 +10,12 @@ import os
 import uuid
 from datetime import datetime
 
+import rag_manager as rag
+rag_manager = rag.RAGManager(
+    db_path='./my_mem', 
+    collection_name='chat_hist'
+)
+
 # --- Constants & Logging ---
 MODEL_NAME = "qwen2.5:7b"
 EMBED_MODEL = "nomic-embed-text"
@@ -25,7 +31,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-SYSTEM_PROMPT = f"""
+SYSTEM_PROMPT = f'''
 You are a helpful AI assistant...
 
 RULES (follow strictly):
@@ -71,24 +77,24 @@ Available tools:
 
 Tool calling format:
 - Single tool:
-{
+{{
   "tool": "tool_name",
-  "arguments": {
+  "arguments": {{
     "arg_name": "value"
-  }
-}
+  }}
+}}
 
 - Multiple tools:
 [
-  {"tool": "tool_name1", "arguments": {...}},
-  {"tool": "tool_name2", "arguments": {...}}
+  {{"tool": "tool_name1", "arguments": {...}}},
+  {{"tool": "tool_name2", "arguments": {...}}}
 ]
 
 Important:
 - After you receive the TOOL RESULTS, you MUST give the final answer in normal text.
 - Do NOT output JSON/tool call again unless you need another tool call.
 - The tool results will be given to you as normal text (string).
-"""
+'''
 
 # --- Docker Setup ---
 docker_client = docker.from_env()
@@ -187,10 +193,7 @@ while True:
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     # RAG 部分保持不變
-    q_emb = ollama.embeddings(model=EMBED_MODEL, prompt=user_input)['embedding']
-    results = collection.query(query_embeddings=[q_emb], n_results=5)
-    retrieved_docs = results['documents'][0] if results['documents'] else []
-    old_mem_text = "\n".join(retrieved_docs)
+    old_mem_text = rag_manager.get_relevant_memories(user_input, n_results=5)
     logger.info(f"RAG Retrieved: {old_mem_text}")
 
     full_system_prompt = f"""
@@ -275,13 +278,13 @@ Current Time: {current_time}
         short_hist.append({'role': 'assistant', 'content': ai_final})
         
         # 存進 RAG 的內容要乾淨、有意義
-        combined_log = f"User: {user_input}\nAI: {ai_final}"
-        
-        c_emb = ollama.embeddings(model=EMBED_MODEL, prompt=combined_log)['embedding']
-        collection.add(
-            ids=[f"id_{collection.count()}_{uuid.uuid4().hex[:4]}"],
-            embeddings=[c_emb],
-            documents=[combined_log]
+        rag_manager.add_mem(
+            text=f"User: {user_input}\nAI: {ai_final}",
+            metadata={
+                "type": "chat",
+                "user_input": user_input[:100],
+                "model": MODEL_NAME
+            }
         )
     else:
         # 如果還是 tool call（異常情況），可以選擇不存，或只存 user 部分
