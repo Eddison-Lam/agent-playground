@@ -3,18 +3,9 @@ import os
 from datetime import datetime, timedelta
 import chromadb
 import ollama
-log_dir = "log/rag"
-if not os.path.exists(log_dir):os.makedirs(log_dir)
-current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_filename = os.path.join(log_dir, f"rag_{current_time}.log")
-logging.basicConfig(
-    level=logging.INFO, 
-    filename=log_filename, 
-    encoding='utf-8',
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from logger_utils import get_logger
 
+logger = get_logger("RAGManager", subdir="rag")
 class RAGManager:
     class QueryError(Exception):
         pass
