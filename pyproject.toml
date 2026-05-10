@@ -1,0 +1,13 @@
+[project]
+name = "my-llm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "chromadb>=1.5.5",
+    "ddgs>=9.11.4",
+    "docker>=7.1.0",
+    "ollama>=0.6.1",
+    "requests>=2.32.5",
+]
