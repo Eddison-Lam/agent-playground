@@ -29,7 +29,7 @@ BASE_SYSTEM_PROMPT = config.get_system_prompt(
     datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 )
 
-print("🤖 AI Assistant 已啟動！輸入 'quit' 或 'exit' 結束。\n")
+print("AI Assistant start! Enter 'quit' or 'exit' to end.\n")
 
 
 # ====================== 主程式 ======================
@@ -73,11 +73,11 @@ Related Past Memories:
             print(f"\nAI: {ai_final}\n")
 
         except KeyboardInterrupt:
-            print("\n\n程式已中斷。")
+            print("\n\nProgram interrupted.")
             break
         except Exception as e:
             logger.error(f"Unexpected error: {e}", exc_info=True)
-            print("發生錯誤，請再試一次。")
+            print("An error occurred. Please try again.")
 
     logger.info("=== AI Assistant Shutdown ===")
 
@@ -109,7 +109,7 @@ def process_conversation(messages, short_hist, user_input):
             ai_final = ai_raw
             break
     else:
-        ai_final = "達到最大步數限制，最後一輪回覆如下：\n" + ai_raw
+        ai_final = "Reached maximum step limit, final response is as follows:\n" + ai_raw
 
     # 儲存對話
     _save_conversation(short_hist, user_input, ai_final)
