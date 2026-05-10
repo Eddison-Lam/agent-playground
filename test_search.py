@@ -5,7 +5,7 @@ import logging
 import os
 from datetime import datetime
 
-log_dir = "log"
+log_dir = "log/test"
 if not os.path.exists(log_dir):os.makedirs(log_dir)
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_filename = os.path.join(log_dir, f"test_search{current_time}.log")
