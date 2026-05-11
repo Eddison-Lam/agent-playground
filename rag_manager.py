@@ -3,18 +3,9 @@ import os
 from datetime import datetime, timedelta
 import chromadb
 import ollama
-log_dir = "log/rag"
-if not os.path.exists(log_dir):os.makedirs(log_dir)
-current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_filename = os.path.join(log_dir, f"rag_{current_time}.log")
-logging.basicConfig(
-    level=logging.INFO, 
-    filename=log_filename, 
-    encoding='utf-8',
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from logger_utils import get_logger
 
+logger = get_logger("RAGManager", subdir="rag")
 class RAGManager:
     class QueryError(Exception):
         pass
@@ -30,6 +21,15 @@ class RAGManager:
         self.collection = self.client.get_or_create_collection(self.collection_name)
         
         logger.info(f"RAGManager initialized. Collection: {self.collection_name} | Count: {self.collection.count()}")
+    
+    def _get_embedding(self, text: str):
+        """get embedding"""
+        try:
+            response = ollama.embeddings(model=self.embed_model, prompt=text)
+            return response['embedding']
+        except Exception as e:
+            logger.error(f"Embedding failed for text (len={len(text)}): {e}")
+            raise
 
     def add_mem(self, text: str, metadata=None):
         if metadata is None:
@@ -82,20 +82,28 @@ class RAGManager:
             results = self._query_logic(time_arg, keyword)
             
             if not results['data']['ids']:
+                logger.info(f"No memories found for export (time_arg={time_arg}, keyword={keyword})")
                 return None
             
-            file_name = f"RAG_export_{datetime.now().timestamp()}_{time_arg}_{keyword if keyword else ''}.md"
-            self._build_markdown(results, file_name)
-            return file_name
+            # === 新增：建立 exports 資料夾 ===
+            export_dir = "exports"
+            os.makedirs(export_dir, exist_ok=True)
             
+            file_name = f"RAG_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{time_arg}_{keyword if keyword else 'none'}.md"
+            file_path = os.path.join(export_dir, file_name)
+            
+            self._build_markdown(results, file_path)
+            
+            logger.info(f"Export successful: {file_path}")
+            return file_path
         except self.QueryError as e:
-            print(f"Query error: {e}")
+            logger.error(f"Query error: {e}")
             return None
         except IOError as e:
-            print(f"File write error: {e}")
+            logger.error(f"File write error: {e}")
             return None
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            logger.error(f"Unexpected error: {e}")
             return None
 
     def _build_markdown(self, results, file_name):
@@ -151,9 +159,9 @@ class RAGManager:
 
     def _safe_preview(self, doc):
         try:
-            return doc.replace('\n', ' ')[:50] + "..."
+            return doc.replace('\n', ' ')[:180] + "..."
         except AttributeError:
-            return str(doc)[:50] + "..."
+            return str(doc)[:180] + "..."
 
     def _query_logic(self, time_arg, keyword):
         now = datetime.now()

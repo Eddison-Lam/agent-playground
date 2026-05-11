@@ -11,6 +11,8 @@ wheels/
 
 # AI RAG memory files
 my_mem
+# RAG Memory Exports
+exports/
 
 # Logs
 *.log
