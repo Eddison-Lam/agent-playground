@@ -31,6 +31,48 @@ BASE_SYSTEM_PROMPT = config.get_system_prompt(
 
 print("AI Assistant start! Enter 'quit' or 'exit' to end.\n")
 
+def handle_command(user_input: str) -> bool:
+    """Handle slash commands, return True if handled (don't enter normal conversation)"""
+    cmd = user_input.strip().lower()
+    
+    if cmd == "/help":
+        print("""Available commands:
+  /export [day|week|month|all|YYYY-MM-DD] [keyword]   → Export memories as Markdown
+  /delete <mem_id>                                    → Delete a specific memory
+  /search <keyword>                                   → Search memories (future extension)
+  /help                                               → Show this help
+        """)
+        return True
+
+    # /export day
+    # /export week AI
+
+    if cmd.startswith("/export"):
+        parts = user_input.split(maxsplit=2)
+        time_arg = parts[1] if len(parts) > 1 else "day"
+        keyword = parts[2] if len(parts) > 2 else None
+        
+        print(f"Exporting (time: {time_arg}, keyword: {keyword})...")
+        filename = rag_manager.export_mem_to_markdown(time_arg, keyword)
+        
+        if filename:
+            print(f"✅ Export successful! File: {filename}")
+        else:
+            print("Export failed or no such memories found.")
+        return True
+
+    # /delete id_xxx
+    if cmd.startswith("/delete") or cmd.startswith("/del"):
+        parts = user_input.split(maxsplit=1)
+        if len(parts) > 1:
+            mem_id = parts[1].strip()
+            rag_manager.delete_by_id(mem_id)
+            print(f"Deleted memory: {mem_id}")
+        else:
+            print("Usage: /delete <mem_id>")
+        return True
+
+    return False  # not command
 
 # ====================== 主程式 ======================
 def main():
@@ -45,6 +87,13 @@ def main():
                 print("👋 Goodbye!")
                 logger.info("User exited the program.")
                 break
+
+            if user_input.startswith('/'):
+                if handle_command(user_input):
+                    continue
+                else:
+                    print("Unknown command. Type /help for available commands.")
+                    continue
 
             logger.info(f"User input: {user_input}")
 
@@ -127,20 +176,20 @@ def execute_tools(tool_calls):
     for call in tool_calls:
         tool_name = call.get("tool")
         args = call.get("arguments", {})
+        match tool_name:
+            case "web_search":
+                url = args.get("url", "")
+                if url:
+                    print(f"🔍 Searching: {url} ...")
+                    result = tools.web_search(url, args.get("params"))
+                    tool_results.append(f"=== web_search result ===\n{result}")
 
-        if tool_name == "web_search":
-            url = args.get("url", "")
-            if url:
-                print(f"🔍 Searching: {url} ...")
-                result = tools.web_search(url, args.get("params"))
-                tool_results.append(f"=== web_search result ===\n{result}")
-
-        elif tool_name == "python_sandbox":
-            code = args.get("code", "")
-            if code:
-                print(f"🐍 Running Python sandbox...")
-                result = tools.python_sandbox(code)
-                tool_results.append(f"=== python_sandbox result ===\n{result}")
+            case "python_sandbox":
+                code = args.get("code", "")
+                if code:
+                    print(f"🐍 Running Python sandbox...")
+                    result = tools.python_sandbox(code)
+                    tool_results.append(f"=== python_sandbox result ===\n{result}")
 
     return tool_results
 
