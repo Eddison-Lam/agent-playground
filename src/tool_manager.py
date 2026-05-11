@@ -1,6 +1,6 @@
 """Tool Manager for handling dynamic tool execution."""
-from settings import settings
-from logger_utils import get_logger
+from .settings import settings
+from .logger_utils import get_logger
 import tools
 
 logger = get_logger("ToolManager", subdir="main")

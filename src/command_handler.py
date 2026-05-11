@@ -1,6 +1,6 @@
 # command_handler.py
-from logger_utils import get_logger
-import rag_manager as rag
+from src.logger_utils import get_logger
+from .rag_manager import RAGManager as rag
 
 logger = get_logger("CommandHandler", subdir="main")
 
@@ -53,25 +53,41 @@ class CommandHandler:
         """)
 
     def _show_tools_status(self):
-        from settings import settings
+        from .settings import settings
         print("\n=== Current Tool Status ===")
         for tool, enabled in settings.get_all_status().items():
-            status = "Enabled" if enabled else "❌ Disabled"
-            confirm = " (needs confirmation)" if settings.needs_confirmation(tool) else ""
-            print(f"  • {tool:15} {status}{confirm}")
+            status = "Enabled" if enabled else "Disabled"
+            confirm = "True" if settings.needs_confirmation(tool) else "False"
+            print(f"  • {tool:15} {status} (Need Confirmation: {confirm})")
 
     def _handle_setting(self, parts):
-        from settings import settings
-        if len(parts) >= 3:
-            tool_name = parts[1]
-            state = parts[2].lower()
-            enable = state in ['on', 'true', '1', 'enable', 'yes']
-            if settings.set_tool(tool_name, enable):
-                print(f"Set {tool_name} → {'Enabled' if enable else 'Disabled'}")
+        """handle /setting command"""
+        from src.settings import settings
+
+        if len(parts) < 3:
+            print("Usage:")
+            print("  /setting <tool> on/off          → Enable or disable tool")
+            print("  /setting <tool> confirm on/off  → Set confirmation requirement")
+            return
+
+        tool_name = parts[1]
+        action = parts[2].lower()
+
+        # /setting <tool> confirm on/off
+        if action == "confirm" and len(parts) >= 4:
+            require = parts[3].lower() in ['on', 'true', '1', 'yes']
+            if settings.set_confirmation(tool_name, require):
+                print(f"Confirmation for '{tool_name}' set to {'ON' if require else 'OFF'}")
             else:
                 print(f"Unknown tool: {tool_name}")
+            return
+
+        # /setting <tool> on/off
+        enable = action in ['on', 'true', '1', 'enable', 'yes']
+        if settings.set_tool(tool_name, enable):
+            print(f"Tool '{tool_name}' → {'Enabled' if enable else 'Disabled'}")
         else:
-            print("Usage: /setting <tool_name> <on/off>")
+            print(f"Unknown tool: {tool_name}")
 
     def _handle_export(self, parts):
         time_arg = parts[1] if len(parts) > 1 else "day"
