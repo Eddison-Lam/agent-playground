@@ -96,6 +96,7 @@ class RAGManager:
             
             logger.info(f"Export successful: {file_path}")
             return file_path
+        
         except self.QueryError as e:
             logger.error(f"Query error: {e}")
             return None
