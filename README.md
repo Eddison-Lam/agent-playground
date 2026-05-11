@@ -51,7 +51,7 @@ python main.py
 | :--- | :--- |
 | /help | Show all available commands|
 | /tools | Show current tool status |
-| /setting <tool> <on/off> | Enable or disable a tool |
+| /setting <tool> <?confirm> <on/off> | Enable or disable a tool (with confirm: set need_confirmation of a tool) |
 | /export [day|week|month|all] [keyword] | Export memories to Markdown |
 | /delete <mem_id> | Delete a specific memory |
 ### Examples
@@ -59,6 +59,7 @@ python main.py
 /export all
 /export day weather
 /setting python_sandbox off
+/setting python_sandbox confirm off
 /tools
 ```
 
