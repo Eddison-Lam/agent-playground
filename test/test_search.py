@@ -1,13 +1,13 @@
 import requests
 import json
-import logger_utils
+from src.logger_utils import get_logger
 import os
 from datetime import datetime
 
 log_dir = "log/test"
 if not os.path.exists(log_dir):os.makedirs(log_dir)
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-logger = logger_utils.get_logger("test_search", subdir="test")
+logger = get_logger("test_search", subdir="test")
 
 def web_search(url: str, params=None) -> str:
     """web search: support JSON API and plain text/HTML pages"""

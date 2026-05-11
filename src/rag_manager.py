@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 import chromadb
 import ollama
-from logger_utils import get_logger
+from .logger_utils import get_logger
 
 logger = get_logger("RAGManager", subdir="rag")
 class RAGManager:

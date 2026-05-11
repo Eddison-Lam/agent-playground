@@ -1,15 +1,22 @@
-# main.py
-from command_handler import CommandHandler
+
+import sys
+from pathlib import Path
+# make sure project root is in sys.path for imports
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+
 import ollama
 from datetime import datetime
 
 # 自訂模組
-from logger_utils import get_logger
-import rag_manager as rag
-import tools
-import config
-from settings import settings
-from tool_manager import tool_manager
+from src.command_handler import CommandHandler
+from src.logger_utils import get_logger
+import src.rag_manager as rag
+import src.tools as tools
+import src.config as config
+from src.settings import settings
+from src.tool_manager import tool_manager
 
 # ====================== 初始化 ======================
 logger = get_logger("Main", subdir="main")
