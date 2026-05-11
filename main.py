@@ -22,6 +22,7 @@ rag_manager = rag.RAGManager(
     collection_name='chat_hist',
     EMBED_MODEL=config.EMBED_MODEL
 )
+command_handler = CommandHandler(rag_manager)
 
 MODEL_NAME = config.MODEL_NAME
 
@@ -37,7 +38,6 @@ print("AI Assistant start! Enter 'quit' or 'exit' to end.\n")
 def main():
     short_hist = []   # 只存 user + assistant 的對話紀錄
     quit_variants = {'quit', 'exit', 'q', 'qq', 'quitt', 'quir', 'quti', 'exitt', 'exi'}
-    command_handler = CommandHandler(rag_manager)
     while True:
         try:
             user_input = input("\nUser >>> ").strip()
