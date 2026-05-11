@@ -7,7 +7,8 @@ from logger_utils import get_logger
 import rag_manager as rag
 import tools
 import config
-
+from settings import settings
+from tool_manager import tool_manager
 
 # ====================== 初始化 ======================
 logger = get_logger("Main", subdir="main")
@@ -31,48 +32,79 @@ BASE_SYSTEM_PROMPT = config.get_system_prompt(
 
 print("AI Assistant start! Enter 'quit' or 'exit' to end.\n")
 
-def handle_command(user_input: str) -> bool:
-    """Handle slash commands, return True if handled (don't enter normal conversation)"""
-    cmd = user_input.strip().lower()
-    
-    if cmd == "/help":
-        print("""Available commands:
-  /export [day|week|month|all|YYYY-MM-DD] [keyword]   → Export memories as Markdown
-  /delete <mem_id>                                    → Delete a specific memory
-  /search <keyword>                                   → Search memories (future extension)
-  /help                                               → Show this help
-        """)
-        return True
+def handle_command(self, user_input: str) -> bool:
+    """handle command inputs, return True if handled (don't enter normal conversation)"""
+    if not user_input.startswith('/'):
+        return False
 
-    # /export day
-    # /export week AI
+    # convert to lowercase for command parsing, but keep original for arguments
+    cmd_line = user_input.strip()
+    cmd = cmd_line.lower()
 
-    if cmd.startswith("/export"):
-        parts = user_input.split(maxsplit=2)
-        time_arg = parts[1] if len(parts) > 1 else "day"
-        keyword = parts[2] if len(parts) > 2 else None
-        
-        print(f"Exporting (time: {time_arg}, keyword: {keyword})...")
-        filename = rag_manager.export_mem_to_markdown(time_arg, keyword)
-        
-        if filename:
-            print(f"✅ Export successful! File: {filename}")
-        else:
-            print("Export failed or no such memories found.")
-        return True
+    match cmd.split()[0]:   # first argument is the command
+        case "/help":
+            print("""Available commands:
+  /help                          → Show this help
+  /tools                         → Show current tool status
+  /setting <tool> <on/off>       → Enable or disable a tool
+  /export [day|week|month|all] [keyword] → Export memories
+  /delete <mem_id>               → Delete a specific memory
+            """)
+            return True
 
-    # /delete id_xxx
-    if cmd.startswith("/delete") or cmd.startswith("/del"):
-        parts = user_input.split(maxsplit=1)
-        if len(parts) > 1:
-            mem_id = parts[1].strip()
-            rag_manager.delete_by_id(mem_id)
-            print(f"Deleted memory: {mem_id}")
-        else:
-            print("Usage: /delete <mem_id>")
-        return True
+        case "/tools":
+            print("\n=== Current Tool Status ===")
+            for tool, enabled in settings.get_status().items():
+                status = "✅ Enabled" if enabled else "❌ Disabled"
+                confirm = " (needs confirmation)" if settings.needs_confirmation(tool) else ""
+                print(f"  • {tool:15} {status}{confirm}")
+            return True
 
-    return False  # not command
+        case "/setting":
+            parts = cmd_line.split()
+            if len(parts) >= 3:
+                tool_name = parts[1]
+                state = parts[2].lower()
+                enable = state in ['on', 'true', '1', 'enable', 'yes']
+                
+                if settings.set_tool(tool_name, enable):
+                    print(f"✅ Tool '{tool_name}' has been {'enabled' if enable else 'disabled'}")
+                else:
+                    print(f"❌ Unknown tool: {tool_name}")
+            else:
+                print("Usage: /setting <tool_name> <on/off>")
+                print("Example: /setting python_sandbox off")
+            return True
+
+        case "/export":
+            parts = cmd_line.split(maxsplit=2)
+            time_arg = parts[1] if len(parts) > 1 else "day"
+            keyword = parts[2] if len(parts) > 2 else None
+            
+            print(f"Exporting memories (time: {time_arg}, keyword: {keyword})...")
+            filename = rag_manager.export_mem_to_markdown(time_arg, keyword)
+            
+            if filename:
+                print(f"Export successful! File: {filename}")
+            else:
+                print("Export failed or no matching memories found.")
+            return True
+
+        case "/delete" | "/del":
+            parts = cmd_line.split(maxsplit=1)
+            if len(parts) > 1:
+                mem_id = parts[1].strip()
+                rag_manager.delete_by_id(mem_id)
+                print(f"Deleted memory: {mem_id}")
+            else:
+                print("Usage: /delete <mem_id>")
+            return True
+
+        case _:
+            print(f"Unknown command: {cmd.split()[0]}")
+            print("Type /help to see available commands.")
+            return True
+
 
 # ====================== 主程式 ======================
 def main():
@@ -101,19 +133,18 @@ def main():
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             old_mem_text = rag_manager.get_relevant_memories(user_input, n_results=6)
 
-            dynamic_info = f"""
-[Environment]
-Current Time: {current_time}
+            available_tools = tool_manager.get_enabled_tools_info()
 
-Related Past Memories:
-{old_mem_text if old_mem_text else "None"}
-"""
+            full_system_prompt = config.build_full_prompt(
+                current_time=current_time,
+                available_tools=available_tools,
+                memories=old_mem_text
+            )
 
-            # === 組裝 messages（System 只放一次）===
             messages = [
-                {'role': 'system', 'content': BASE_SYSTEM_PROMPT}
+                {'role': 'system', 'content': full_system_prompt}
             ] + short_hist + [
-                {'role': 'user', 'content': user_input + "\n\n" + dynamic_info}
+                {'role': 'user', 'content': user_input}
             ]
 
             # === 處理本次對話 ===
@@ -167,7 +198,7 @@ def process_conversation(messages, short_hist, user_input):
 
 
 def execute_tools(tool_calls):
-    """執行工具"""
+    """Execute tools using ToolManager, return list of results"""
     if not isinstance(tool_calls, list):
         tool_calls = [tool_calls]
 
@@ -176,26 +207,15 @@ def execute_tools(tool_calls):
     for call in tool_calls:
         tool_name = call.get("tool")
         args = call.get("arguments", {})
-        match tool_name:
-            case "web_search":
-                url = args.get("url", "")
-                if url:
-                    print(f"🔍 Searching: {url} ...")
-                    result = tools.web_search(url, args.get("params"))
-                    tool_results.append(f"=== web_search result ===\n{result}")
 
-            case "python_sandbox":
-                code = args.get("code", "")
-                if code:
-                    print(f"🐍 Running Python sandbox...")
-                    result = tools.python_sandbox(code)
-                    tool_results.append(f"=== python_sandbox result ===\n{result}")
+        result = tool_manager.execute(tool_name, args)
+        tool_results.append(f"=== {tool_name} result ===\n{result}")
 
     return tool_results
 
 
 def _save_conversation(short_hist, user_input, ai_final):
-    """儲存對話到 short_hist 和 RAG"""
+    """Save conversation to short_hist and RAG"""
     if not tools.get_json_from_ai(ai_final):
         short_hist.append({'role': 'user', 'content': user_input})
         short_hist.append({'role': 'assistant', 'content': ai_final})

@@ -73,3 +73,19 @@ def get_system_prompt(current_time: str) -> str:
 [Environment]
 Current Time: {current_time}
 """
+
+def build_full_prompt(current_time: str, available_tools: str, memories: str = "") -> str:
+    """
+    組裝完整的 System + Environment Prompt
+    """
+    dynamic_part = f"""
+[Environment]
+Current Time: {current_time}
+
+Available Tools (only use these enabled tools):
+{available_tools}
+
+Related Past Memories:
+{memories if memories else "None"}
+"""
+    return SYSTEM_PROMPT + dynamic_part
