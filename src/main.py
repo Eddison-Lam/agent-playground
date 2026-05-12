@@ -18,6 +18,9 @@ import src.config as config
 from src.settings import settings
 from src.tool_manager import tool_manager
 
+DEBUG = True
+
+
 # ====================== 初始化 ======================
 logger = get_logger("Main", subdir="main")
 
@@ -45,6 +48,9 @@ print("AI Assistant start! Enter 'quit' or 'exit' to end.\n")
 def main():
     short_hist = []   # 只存 user + assistant 的對話紀錄
     quit_variants = {'quit', 'exit', 'q', 'qq', 'quitt', 'quir', 'quti', 'exitt', 'exi'}
+    summarized_rounds = 0 ##Count how round is summarized
+    
+    
     while True:
         try:
             user_input = input("\nUser >>> ").strip()
@@ -121,13 +127,30 @@ def process_conversation(messages, short_hist, user_input):
                 continue
         else:
             ai_final = ai_raw
+
             break
     else:
         ai_final = "Reached maximum step limit, final response is as follows:\n" + ai_raw
 
     # save conversation to short_hist and RAG
     _save_conversation(short_hist, user_input, ai_final)
-    
+    if DEBUG:
+        print("==================DEBUG MESSAGE==================")
+
+        print("Print all short_hist:")
+        count = 0
+        for hist in short_hist:
+            print(f'{count}  {hist}')
+            count += 1
+        print()
+        print("User input")
+        print(user_input)
+        print()
+        print("AI final")
+        print(ai_final)
+        print("==================DEBUG MESSAGE==================")
+
+        
     return ai_final
 
 

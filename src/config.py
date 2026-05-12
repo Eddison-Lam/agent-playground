@@ -80,6 +80,17 @@ Important:
 - The tool results will be given to you as normal text (string).
 '''
 
+SUMMARIZE_PROMPT = '''
+You are a helpful AI assistant. Your goal is to summarize the text from user 
+
+The Core Objective: high-level overview.
+Key Pillars: 3 to 5 sentences highlighting the most critical data, arguments.
+For examples, where and when it happen? who involved? What is happening? Why it happened?
+'''
+
+
+rounds_to_summarize = 3 
+
 def get_system_prompt(current_time: str) -> str:
     return f"""{SYSTEM_PROMPT}
 [Environment]
