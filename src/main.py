@@ -20,6 +20,45 @@ from src.tool_manager import tool_manager
 
 DEBUG = True
 
+class Summary():
+    def __init__(self, rounds_to_summary = 4):
+        self.content = []
+        self.summarized_rounds = 0
+        self.current_round = 0
+        self.number_of_rounds_to_summarize = rounds_to_summary
+        
+    def do_summary(self, short_hist):
+        self.current_round = len(short_hist)
+        if (self.number_of_rounds_to_summarize == 0 ):
+            if DEBUG:
+                print("DEBUG: Summarization is skipped")
+            return
+        
+        while self.current_round - self.summarized_rounds >= self.number_of_rounds_to_summarize:
+            start = self.summarized_rounds
+            end = start + self.number_of_rounds_to_summarize
+            context = str()
+            for index in range(start, end):
+                context += f'Chat history number {index} -- {short_hist[index]["role"]}: {short_hist[index]["content"]} \n'
+                
+            prompt = [
+                    {'role': 'system', 'content': config.SUMMARIZE_PROMPT}
+                    ] + [
+                    {'role': 'user', 'content': context}
+                    ]
+            if DEBUG:
+                print(f'DEBUG: Summary prompt from round {start} to {end} {prompt}')
+            ai_reply = ollama.chat(model=MODEL_NAME, messages=prompt)['message']['content']
+            self.content.append({'role': 'system', 'content':ai_reply})
+            if DEBUG:
+                print(f'DEBUG: Summary from round {start} to {end} {self.content[-1]["content"]}')
+            self.summarized_rounds += self.number_of_rounds_to_summarize
+            
+            
+        
+        
+        
+
 
 # ====================== 初始化 ======================
 logger = get_logger("Main", subdir="main")
@@ -48,8 +87,7 @@ print("AI Assistant start! Enter 'quit' or 'exit' to end.\n")
 def main():
     short_hist = []   # 只存 user + assistant 的對話紀錄
     quit_variants = {'quit', 'exit', 'q', 'qq', 'quitt', 'quir', 'quti', 'exitt', 'exi'}
-    summarized_rounds = 0 ##Count how round is summarized
-    
+    agent_summary = Summary()
     
     while True:
         try:
@@ -89,16 +127,18 @@ def main():
 
             # === 處理本次對話 ===
             ai_final = process_conversation(messages, short_hist, user_input)
-
+            
             print(f"\nAI: {ai_final}\n")
-
+            
+            agent_summary.do_summary(short_hist)
+            
         except KeyboardInterrupt:
             print("\n\nProgram interrupted.")
             break
         except Exception as e:
             logger.error(f"Unexpected error: {e}", exc_info=True)
             print("An error occurred. Please try again.")
-
+        
     logger.info("=== AI Assistant Shutdown ===")
 
 
@@ -127,13 +167,13 @@ def process_conversation(messages, short_hist, user_input):
                 continue
         else:
             ai_final = ai_raw
-
             break
     else:
         ai_final = "Reached maximum step limit, final response is as follows:\n" + ai_raw
 
     # save conversation to short_hist and RAG
     _save_conversation(short_hist, user_input, ai_final)
+
     if DEBUG:
         print("==================DEBUG MESSAGE==================")
 
@@ -150,7 +190,6 @@ def process_conversation(messages, short_hist, user_input):
         print(ai_final)
         print("==================DEBUG MESSAGE==================")
 
-        
     return ai_final
 
 
@@ -193,6 +232,8 @@ def _save_conversation(short_hist, user_input, ai_final):
     else:
         short_hist.append({'role': 'assistant', 'content': ai_final})
         logger.warning("AI output tool call as final answer")
+
+
 
 
 if __name__ == "__main__":
