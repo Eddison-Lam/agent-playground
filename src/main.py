@@ -1,4 +1,3 @@
-
 import sys
 from pathlib import Path
 # make sure project root is in sys.path for imports
@@ -17,13 +16,14 @@ import src.tools as tools
 import src.config as config
 from src.settings import settings
 from src.tool_manager import tool_manager
-
+from src.llm.factory import get_llm
 # ====================== 初始化 ======================
 logger = get_logger("Main", subdir="main")
 
 logger.info("=== AI Assistant Starting ===")
 
-# 初始化 RAG Manager
+llm = get_llm()
+
 rag_manager = rag.RAGManager(
     db_path='./my_mem', 
     collection_name='chat_hist',
@@ -31,7 +31,6 @@ rag_manager = rag.RAGManager(
 )
 command_handler = CommandHandler(rag_manager)
 
-MODEL_NAME = config.MODEL_NAME
 
 # ====================== 只建立一次 System Prompt ======================
 # 這個只會在程式啟動時建立一次，之後不會重複傳送
@@ -103,8 +102,7 @@ def process_conversation(messages, short_hist, user_input):
 
     while step < max_steps:
         step += 1
-        response = ollama.chat(model=MODEL_NAME, messages=messages)
-        ai_raw = response['message']['content']
+        ai_raw = llm.chat(messages)
 
         messages.append({'role': 'assistant', 'content': ai_raw})
 
