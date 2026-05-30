@@ -16,3 +16,6 @@ exports/
 
 # Logs
 *.log
+
+# Environment variables
+.env
