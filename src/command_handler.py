@@ -3,6 +3,8 @@ from src.logger_utils import get_logger
 from .rag_manager import RAGManager as rag
 
 logger = get_logger("CommandHandler", subdir="main")
+TRUE_VALUES = ['on', 'true', '1', 'enable', 'yes']
+FALSE_VALUES = ['off', 'false', '0', 'disable', 'no']
 
 class CommandHandler:
     def __init__(self, rag_manager):
@@ -75,7 +77,15 @@ class CommandHandler:
 
         # /setting <tool> confirm on/off
         if action == "confirm" and len(parts) >= 4:
-            require = parts[3].lower() in ['on', 'true', '1', 'yes']
+            val_str = parts[3].lower()
+            if val_str in TRUE_VALUES:
+                require = True
+            elif val_str in FALSE_VALUES:
+                require = False
+            else:
+                print(f"❌ Invalid value: '{parts[3]}'。Please use on/off, true/false, 1/0, enable/disable, yes/no")
+                return
+
             if settings.set_confirmation(tool_name, require):
                 print(f"Confirmation for '{tool_name}' set to {'ON' if require else 'OFF'}")
             else:
@@ -83,7 +93,14 @@ class CommandHandler:
             return
 
         # /setting <tool> on/off
-        enable = action in ['on', 'true', '1', 'enable', 'yes']
+        if action in TRUE_VALUES:
+            enable = True
+        elif action in FALSE_VALUES:
+            enable = False
+        else:
+            print(f"❌ Invalid value: '{action}'。Please use on/off, true/false, 1/0, enable/disable, yes/no")
+            return
+
         if settings.set_tool(tool_name, enable):
             print(f"Tool '{tool_name}' → {'Enabled' if enable else 'Disabled'}")
         else:
@@ -102,7 +119,9 @@ class CommandHandler:
     def _handle_delete(self, parts):
         if len(parts) > 1:
             mem_id = parts[1].strip()
-            self.rag_manager.delete_by_id(mem_id)
-            print(f"Deleted: {mem_id}")
+            if self.rag_manager.delete_by_id(mem_id):
+                print(f"✅ Deleted: {mem_id}")
+            else:
+                print(f"❌ Delete failed: Memory ID '{mem_id}' not found or database error.")
         else:
             print("Usage: /delete <mem_id>")
