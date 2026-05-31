@@ -72,10 +72,17 @@ class RAGManager:
 
     def delete_by_id(self, mem_id: str):
         try:
+            existing = self.collection.get(ids=[mem_id])
+            if not existing or not existing.get('ids'):
+                logger.warning(f"🔍 Memory ID not found for deletion: {mem_id}")
+                return False
+
             self.collection.delete(ids=[mem_id])
             logger.info(f"🗑️ Memory deleted: {mem_id}")
+            return True
         except Exception as e:
-            logger.error(f"Delete failed: {e}")
+            logger.error(f"Delete failed for ID {mem_id}: {e}")
+            return False
 
     def export_mem_to_markdown(self, time_arg='day', keyword=None):
         try:
