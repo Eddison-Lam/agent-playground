@@ -1,7 +1,4 @@
 {
-    "code-runner.executorMap": {
-        "python": "${workspaceFolder}\\.venv\\Scripts\\python.exe -u"
-    },
     "code-runner.runInTerminal": true,
     "behave-vsc.featuresPath": "tests/features"
 }

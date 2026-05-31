@@ -1,20 +1,18 @@
 """Main entry point for AI Assistant with LangGraph."""
 import sys
 from pathlib import Path
+import asyncio
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 import os
-from dotenv import load_dotenv
 from src.agent.graph import create_agent_graph
 from src.command_handler import CommandHandler
 from src.logger_utils import get_logger
 from src.timer import TimerDisplay
 from src.ui.cli_app import ConversationSession
 import src.rag_manager as rag
-
-load_dotenv()
 
 # ====================== Initialization ======================
 logger = get_logger("Main", subdir="main")
@@ -45,7 +43,6 @@ async def async_main():
     )
     await session.start()
 
-            logger.info("=== AI Assistant Shutdown ===")
 
 if __name__ == "__main__":
-    async_main()
+    asyncio.run(async_main())
