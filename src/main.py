@@ -19,7 +19,7 @@ logger = get_logger("Main", subdir="main")
 logger.info("=== AI Assistant Starting (LangGraph Mode) ===")
 
 rag_manager = rag.RAGManager(
-    db_path='./my_mem',
+    db_path='./rag_mem',
     collection_name='chat_hist',
     EMBED_MODEL=os.getenv("EMBED_MODEL", "nomic-embed-text")
 )
