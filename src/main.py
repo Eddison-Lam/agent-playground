@@ -11,7 +11,7 @@ from src.agent.graph import create_agent_graph
 from src.command_handler import CommandHandler
 from src.logger_utils import get_logger
 from src.timer import TimerDisplay
-from src.cli_app import ConversationSession
+from src.ui.cli_app import ConversationSession
 import src.rag_manager as rag
 
 load_dotenv()
@@ -34,7 +34,7 @@ print("Type /help for available commands.\n")
 
 
 # ====================== Main Loop ======================
-def main():
+async def async_main():
     """Main conversation loop (CMD UI Shell)."""
     # init session
     session = ConversationSession(
@@ -43,39 +43,9 @@ def main():
         rag_manager=rag_manager,
         timer_display=timer
     )
+    await session.start()
 
-    while True:
-        try:
-            user_input = input("\nUser >>> ")
-
-            res = session.handle_message(user_input)
-            
-            match res["status"]:
-                case "quit":
-                    print(res["output"])
-                    break
-                case "command_handled":
-                    continue
-                case "unknown_command":
-                    print(res["output"])
-                case "error":
-                    print(res["output"])
-                case "success":
-                    print(f"\nAI >>> {res['output']}") 
-                case _:
-                    if res["output"]:
-                        print(f"\nAI >>> {res['output']}")
-                
-        except KeyboardInterrupt:
-            session.timer.stop()
-            print("\n\nProgram interrupted.")
-            break
-        except Exception as e:
-            session.timer.stop()
-            logger.error(f"Unexpected error: {e}", exc_info=True)
-            print("An error occurred. Please try again.")
-
-    logger.info("=== AI Assistant Shutdown ===")
+            logger.info("=== AI Assistant Shutdown ===")
 
 if __name__ == "__main__":
-    main()
+    async_main()

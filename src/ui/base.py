@@ -16,3 +16,8 @@ class BaseSession(ABC):
     async def handle_message(self, user_input: str) -> dict:
         """Handle any UI input asynchronously."""
         pass
+
+    @abstractmethod
+    async def start(self) -> None:
+        """Start the session (e.g. event loop for prompt loop)."""
+        pass
