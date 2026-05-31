@@ -1,20 +1,15 @@
 import os
 import logging
 from langchain_core.messages import HumanMessage, AIMessage
+from src.ui.base import BaseSession
 
 logger = logging.getLogger(__name__)
 
-class ConversationSession:
+class ConversationSession(BaseSession):
     def __init__(self, agent, command_handler, rag_manager, timer_display):
-        self.agent = agent
-        self.command_handler = command_handler
-        self.rag_manager = rag_manager
-        self.timer = timer_display
-        
-        self.quit_variants = {'quit', 'exit', 'q', 'qq', 'quitt', 'quir', 'quti', 'exitt', 'exi'}
-        self.short_hist = []
+        super().__init__(agent, command_handler, rag_manager, timer_display)
 
-    def handle_message(self, user_input: str) -> dict:
+    async def handle_message(self, user_input: str) -> dict:
         """
         handle single message for any ui, return dict with status and output
         """
@@ -33,7 +28,7 @@ class ConversationSession:
         logger.info(f"User input: {user_input}")
 
         self.timer.start()
-        result = self.agent.invoke({
+        result = await self.agent.ainvoke({
             "messages": [HumanMessage(content=user_input)] + self.short_hist,
             "selected_skills": [],
             "step_count": 0
