@@ -39,7 +39,7 @@ or
 uv sync
 
 # 4. Build python sandbox for agent
-docker build -t my-python-sandbox .
+docker build -t ai-sandbox .
 
 # 5. Run
 python main.py
