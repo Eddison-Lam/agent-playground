@@ -1,17 +1,13 @@
 # src/llm/base.py
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from langchain_core.language_models import BaseChatModel
 
 
 class BaseLLM(ABC):
     """
     Abstract base class for all LLM implementations.
-    
-    This class defines a unified interface for interacting with different
-    Large Language Models (local or cloud). 
-    
-    To add a new model type (Ollama, OpenAI, DeepSeek, Watsonx, etc.),
-    create a new subclass and implement the `chat()` method.
+    Supports both direct API calls and LangGraph integration.
     """
 
     def __init__(self):
@@ -20,36 +16,27 @@ class BaseLLM(ABC):
         self.api_key: str | None = None
         self.timeout: int = 180
         self.default_params: Dict[str, Any] = {}
+        self._langchain_model: Optional[BaseChatModel] = None
 
     @abstractmethod
     def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        """
-        Send a conversation (messages) to the LLM and return the response text.
-        
-        Args:
-            messages: List of message dictionaries in OpenAI format 
-                     (system, user, assistant, tool, etc.)
-            **kwargs: Additional parameters (temperature, max_tokens, etc.)
-            
-        Returns:
-            str: The generated response content from the model.
-        """
+        """Send messages to LLM and return response."""
         pass
 
     def generate(self, prompt: str, **kwargs) -> str:
-        """
-        Convenience method for single-turn prompt completion.
-        
-        Args:
-            prompt: A single string prompt
-            **kwargs: Additional model parameters
-            
-        Returns:
-            str: The generated response
-        """
+        """Convenience method for single-turn completion."""
         messages = [{"role": "user", "content": prompt}]
         return self.chat(messages, **kwargs)
 
+    @abstractmethod
+    def get_langchain_model(self) -> BaseChatModel:
+        """
+        Return a LangChain-compatible chat model for use with LangGraph.
+        
+        Returns:
+            BaseChatModel: LangChain chat model instance
+        """
+        pass
+
     def _handle_error(self, error: Exception) -> str:
-        """Internal method to format error messages consistently."""
         return f"[{self.__class__.__name__} Error] {str(error)}"

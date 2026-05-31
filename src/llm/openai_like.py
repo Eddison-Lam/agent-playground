@@ -1,50 +1,59 @@
 import os
-import requests
 from typing import List, Dict
+from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 from .base import BaseLLM
 
 
 class OpenAILikeModel(BaseLLM):
-    """
-    OpenAI-compatible API implementation.
-    Supports OpenAI, DeepSeek, Groq, Together.ai, etc.
-    """
-
+    """OpenAI-compatible API (DeepSeek, custom APIs, etc.)."""
+    
     def __init__(self):
-        super().__init__() 
-        self.api_key = os.getenv("CLOUD_API_KEY")
-        self.base_url = os.getenv("CLOUD_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-        self.model = os.getenv("CLOUD_MODEL", "gpt-4o-mini")
-
-        if not self.api_key:
+        super().__init__()
+        self.base_url = os.getenv("LLM_BASE_URL")
+        self.model = os.getenv("LLM_MODEL")
+        self.api_key = os.getenv("LLM_API_KEY")
+        self.timeout = int(os.getenv("LLM_TIMEOUT", "180"))
+        
+        # Validate required environment variables
+        if not all([self.base_url, self.model, self.api_key]):
             raise ValueError(
-                "CLOUD_API_KEY is required for cloud mode but not found in environment variables."
+                "Missing required environment variables for OpenAI-compatible API:\n"
+                "  - LLM_BASE_URL\n"
+                "  - LLM_MODEL\n"
+                "  - LLM_API_KEY"
             )
-
-        print(f"Cloud LLM initialized: {self.model} @ {self.base_url}")
-
-    def chat(self, messages: List[Dict], **kwargs) -> str:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+        
+        self.default_params = {
+            "temperature": float(os.getenv("LLM_TEMPERATURE", "0.7")),
         }
 
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            **self.default_params,
-            **kwargs
-        }
-
+    def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
+        """Direct API call using OpenAI client."""
         try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                json=payload,
-                headers=headers,
+            from openai import OpenAI
+            client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
                 timeout=self.timeout
             )
-            response.raise_for_status()
-            return response.json()['choices'][0]['message']['content']
+            response = client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                **{**self.default_params, **kwargs}
+            )
+            return response.choices[0].message.content
         except Exception as e:
             return self._handle_error(e)
 
+    def get_langchain_model(self) -> BaseChatModel:
+        """Return ChatOpenAI for LangGraph."""
+        if self._langchain_model is None:
+            self._langchain_model = ChatOpenAI(
+                model=self.model,
+                base_url=self.base_url,
+                api_key=self.api_key,
+                timeout=self.timeout,
+                **self.default_params
+            )
+        return self._langchain_model
