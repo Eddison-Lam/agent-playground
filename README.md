@@ -1,19 +1,18 @@
 # AI Assistant with RAG Memory
 
-A local AI assistant powered by Ollama, featuring **Tool Calling**, **RAG long-term memory**, and a comprehensive slash command system. Specially optimized for reliable Hong Kong weather information.
-
+A local AI Agent Playground built with **LangGraph**, featuring robust tool calling, persistent RAG memory, and stateful multi-step reasoning.
 ---
 
 ## Features
 
-- **RAG Memory System** – Persistent memory with export and management
-- **Tool Calling** – `web_search`, `python_sandbox`, and easily extensible
-- **Dynamic Tool Control** – Enable/disable tools at runtime
-- **Hong Kong Weather Rules** – Strictly enforces fresh data fetching
-- **Slash Commands** – `/export`, `/setting`, `/tools`, etc.
-- **Docker Support** – Easy deployment
-- **Modular Architecture** – Clean and maintainable code
-
+- **LangGraph Architecture** — Powered by LangGraph StateGraph for clear, controllable, and debuggable agent workflows
+- **Persistent RAG Memory** — Long-term vector memory with export and management capabilities
+- **Advanced Tool Calling** — `web_search`, `python_sandbox`, and easily extensible tools
+- **Dynamic Tool Control** — Enable/disable tools at runtime
+- **Hong Kong Weather Rules** — Strictly enforces fresh weather data fetching for accuracy
+- **Slash Commands** — `/help`, `/tools`, `/export`, `/settings`, etc.
+- **Docker Support** — Easy deployment with sandbox environment
+- **Modular & Clean Codebase** — Well-structured for further development
 ---
 
 ## Quick Start
@@ -26,12 +25,12 @@ A local AI assistant powered by Ollama, featuring **Tool Calling**, **RAG long-t
 
 ```bash
 # 1. Pull required models
-ollama pull qwen2.5:7b
-ollama pull nomic-embed-text
+ollama pull qwen2.5:7b      # ollama model as you want to use
+ollama pull nomic-embed-text    # ollama embedding model as you want to use
 
 # 2. Setup project
-git clone <your-repo-url>
-cd <repo-dir>
+git clone https://github.com/Eddison-Lam/agent-playground.git
+cd cd agent-playground
 
 # 3. Install dependencies
 pip install -r requirements.txt
@@ -69,9 +68,43 @@ python main.py
 - First run will automatically create necessary folders and database.
 
 ## Tech Stack
+- LangGraph (LangChain) — Agent orchestration
 - LLM: Qwen2.5-7B
 - Embedding Model: nomic-embed-text
 - Vector Database: ChromaDB
 - Tools: Web search + Secure Python sandbox
+
+## Project Structure
+```
+.
+├── Dockerfile
+├── README.md
+├── scripts/                  # Windows start & install scripts
+├── src/
+│   ├── main.py
+│   ├── config.py
+│   ├── settings.py
+│   ├── rag_manager.py
+│   ├── command_handler.py
+│   ├── agent/                # LangGraph core
+│   │   ├── state.py
+│   │   ├── graph.py
+│   │   ├── nodes.py
+│   │   ├── router.py
+│   │   └── router_agent.py
+│   ├── tools/                # Tool system
+│   │   ├── manager.py
+│   │   ├── registry.py
+│   │   ├── base.py
+│   │   └── implementations/
+│   ├── prompts/skills/       # Skill-specific prompts
+│   ├── llm/                  # LLM providers
+│   ├── ui/                   # CLI & UI layer
+│   └── ...
+├── rag_mem/                  # Persistent RAG database (Chroma)
+├── tests/
+├── log/                      # Log files
+└── ...
+```
 
 Contributions are welcome! Feel free to open Issues or Pull Requests.
