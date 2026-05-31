@@ -15,6 +15,8 @@ class OllamaModel(BaseLLM):
         self.timeout = int(os.getenv("LLM_TIMEOUT", "180"))
         self.default_params = {
             "temperature": float(os.getenv("LLM_TEMPERATURE", "0.7")),
+            "frequency_penalty": float(os.getenv("LLM_FREQUENCY_PENALTY", "0.4")),
+            "presence_penalty": float(os.getenv("LLM_PRESENCE_PENALTY", "0.3")),
         }
 
     def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
