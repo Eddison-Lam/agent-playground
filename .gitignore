@@ -10,7 +10,7 @@ wheels/
 .venv
 
 # AI RAG memory files
-my_mem
+rag_mem
 # RAG Memory Exports
 exports/
 
