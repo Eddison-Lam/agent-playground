@@ -66,14 +66,18 @@ class RouterAgent:
         ])
         
         # Router prompt
-        router_prompt = f"""Determine which skills are needed.
+        router_prompt = f"""You are a strict classifier. Analyze if the User Input explicitly requests the usage of any available skills.
 
-Available skills:
+[Available Skills]
 {skills_desc}
 
-User input: "{user_input}"
+[User Input]
+"{user_input}"
 
-Respond with only skill names (one per line), or nothing if none needed.
+[Critical Rules]
+1. If the user is asking about your capabilities, asking a general question, saying hello/thank you, or talking about "tools" in general, DO NOT select any skill.
+2. Only select a skill if the user is explicitly asking for that specific service
+3. If no skill is an exact match, you MUST respond with a blank line (absolutely nothing).
 
 Your response:"""
         

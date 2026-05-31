@@ -47,7 +47,7 @@ class AgentNodes:
         selected_skills = self.router.select_skills(user_input)
         
         if selected_skills:
-            sys.stdout.write(f"📚 Selected skills: {', '.join(selected_skills)}\n")
+            sys.stdout.write(f"\r📚 Selected skills: {', '.join(selected_skills)}\n")
             sys.stdout.flush()
         
         return {"selected_skills": selected_skills}
@@ -204,7 +204,7 @@ class AgentNodes:
         tool_node = ToolNode(tools)
         result = await tool_node.ainvoke(state)
         
-        sys.stdout.write("✅ Tools executed\n\n")
+        sys.stdout.write("\r✅ Tools executed\n\n")
         sys.stdout.flush()
         
         return result
