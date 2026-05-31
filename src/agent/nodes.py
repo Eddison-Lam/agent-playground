@@ -189,7 +189,7 @@ class AgentNodes:
         logger.info("User approved tool execution")
         return state
 
-    def execute_tools(self, state: AgentState) -> AgentState:
+    async def execute_tools(self, state: AgentState) -> AgentState:
         """Execute tools using LangGraph's ToolNode."""
         tools = get_langchain_tools()
         
@@ -202,7 +202,7 @@ class AgentNodes:
         
         logger.info(f"Executing tools with {len(tools)} available tools")
         tool_node = ToolNode(tools)
-        result = tool_node.invoke(state)
+        result = await tool_node.ainvoke(state)
         
         sys.stdout.write("✅ Tools executed\n\n")
         sys.stdout.flush()
