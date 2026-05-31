@@ -1,0 +1,7 @@
+{
+    "recommendations": [
+        "ms-python.python",              // Python 官方核心工具
+        "formulahendry.code-runner",     // Code Runner (一鍵執行程式碼)
+        "com-theboreddev.behave-vsc"    // Behave VSC (Behave 專用整合)
+    ]
+}
