@@ -1,174 +1,81 @@
+"""Main entry point for AI Assistant with LangGraph."""
 import sys
 from pathlib import Path
-# make sure project root is in sys.path for imports
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-
-import ollama
-from datetime import datetime
-
-# 自訂模組
+import os
+from dotenv import load_dotenv
+from src.agent.graph import create_agent_graph
 from src.command_handler import CommandHandler
 from src.logger_utils import get_logger
+from src.timer import TimerDisplay
+from src.cli_app import ConversationSession
 import src.rag_manager as rag
-import src.tools as tools
-import src.config as config
-from src.settings import settings
-from src.tool_manager import tool_manager
-from src.llm.factory import get_llm
-# ====================== 初始化 ======================
+
+load_dotenv()
+
+# ====================== Initialization ======================
 logger = get_logger("Main", subdir="main")
-
-logger.info("=== AI Assistant Starting ===")
-
-llm = get_llm()
+logger.info("=== AI Assistant Starting (LangGraph Mode) ===")
 
 rag_manager = rag.RAGManager(
-    db_path='./my_mem', 
+    db_path='./my_mem',
     collection_name='chat_hist',
-    EMBED_MODEL=config.EMBED_MODEL
+    EMBED_MODEL=os.getenv("EMBED_MODEL", "nomic-embed-text")
 )
+
 command_handler = CommandHandler(rag_manager)
+agent = create_agent_graph(rag_manager)
+timer = TimerDisplay()
+print("🤖 AI Assistant started! Enter 'quit' or 'exit' to end.\n")
+print("Type /help for available commands.\n")
 
 
-# ====================== 只建立一次 System Prompt ======================
-# 這個只會在程式啟動時建立一次，之後不會重複傳送
-BASE_SYSTEM_PROMPT = config.get_system_prompt(
-    datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-)
-
-print("AI Assistant start! Enter 'quit' or 'exit' to end.\n")
-
-# ====================== 主程式 ======================
+# ====================== Main Loop ======================
 def main():
-    short_hist = []   # 只存 user + assistant 的對話紀錄
-    quit_variants = {'quit', 'exit', 'q', 'qq', 'quitt', 'quir', 'quti', 'exitt', 'exi'}
+    """Main conversation loop (CMD UI Shell)."""
+    # init session
+    session = ConversationSession(
+        agent=agent,
+        command_handler=command_handler,
+        rag_manager=rag_manager,
+        timer_display=timer
+    )
+
     while True:
         try:
-            user_input = input("\nUser >>> ").strip()
+            user_input = input("\nUser >>> ")
+
+            res = session.handle_message(user_input)
             
-            if user_input.lower() in quit_variants:
-                print("👋 Goodbye!")
-                logger.info("User exited the program.")
-                break
-
-            if user_input.startswith('/'):
-                if command_handler.handle(user_input):
+            match res["status"]:
+                case "quit":
+                    print(res["output"])
+                    break
+                case "command_handled":
                     continue
-                else:
-                    print("Unknown command. Type /help for available commands.")
-                    continue
-
-            logger.info(f"User input: {user_input}")
-
-            # === 每次動態取得最新資訊 ===
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            old_mem_text = rag_manager.get_relevant_memories(user_input, n_results=6)
-
-            available_tools = tool_manager.get_enabled_tools_info()
-
-            full_system_prompt = config.build_full_prompt(
-                current_time=current_time,
-                available_tools=available_tools,
-                memories=old_mem_text
-            )
-
-            messages = [
-                {'role': 'system', 'content': full_system_prompt}
-            ] + short_hist + [
-                {'role': 'user', 'content': user_input}
-            ]
-
-            # === 處理本次對話 ===
-            ai_final = process_conversation(messages, short_hist, user_input)
-
-            print(f"\nAI: {ai_final}\n")
-
+                case "unknown_command":
+                    print(res["output"])
+                case "error":
+                    print(res["output"])
+                case "success":
+                    print(f"\nAI >>> {res['output']}") 
+                case _:
+                    if res["output"]:
+                        print(f"\nAI >>> {res['output']}")
+                
         except KeyboardInterrupt:
+            session.timer.stop()
             print("\n\nProgram interrupted.")
             break
         except Exception as e:
+            session.timer.stop()
             logger.error(f"Unexpected error: {e}", exc_info=True)
             print("An error occurred. Please try again.")
 
     logger.info("=== AI Assistant Shutdown ===")
-
-
-def process_conversation(messages, short_hist, user_input):
-    """Process conversation (including tool calling)"""
-    max_steps = 10
-    step = 0
-
-    while step < max_steps:
-        step += 1
-        ai_raw = llm.chat(messages)
-
-        messages.append({'role': 'assistant', 'content': ai_raw})
-
-        parsed = tools.get_json_from_ai(ai_raw)
-        
-        if parsed:
-            tool_results = execute_tools(parsed)
-            if tool_results:
-                combined = "\n\n".join(tool_results)
-                messages.append({
-                    'role': 'user',
-                    'content': f"TOOL RESULTS:\n{combined}\n\nNow, based on these results, give me the final answer in normal text."
-                })
-                continue
-        else:
-            ai_final = ai_raw
-            break
-    else:
-        ai_final = "Reached maximum step limit, final response is as follows:\n" + ai_raw
-
-    # save conversation to short_hist and RAG
-    _save_conversation(short_hist, user_input, ai_final)
-    
-    return ai_final
-
-
-def execute_tools(tool_calls):
-    """Execute tools using ToolManager, return list of results"""
-    if not isinstance(tool_calls, list):
-        tool_calls = [tool_calls]
-
-    tool_results = []
-    
-    for call in tool_calls:
-        tool_name = call.get("tool")
-        args = call.get("arguments", {})
-
-        result = tool_manager.execute(tool_name, args)
-        tool_results.append(f"=== {tool_name} result ===\n{result}")
-
-    return tool_results
-
-
-def _save_conversation(short_hist, user_input, ai_final):
-    """Save conversation to short_hist and RAG"""
-    if not tools.get_json_from_ai(ai_final):
-        short_hist.append({'role': 'user', 'content': user_input})
-        short_hist.append({'role': 'assistant', 'content': ai_final})
-
-        # Restrict short_hist to last 10 messages (5 turns) to avoid token explosion
-        if len(short_hist) > 10:
-            short_hist[:] = short_hist[-10:]
-
-        # store to RAG
-        rag_manager.add_mem(
-            text=f"User: {user_input}\nAI: {ai_final}",
-            metadata={
-                "type": "conversation",
-                "model": MODEL_NAME,
-                "user_input_preview": user_input[:120]
-            }
-        )
-    else:
-        short_hist.append({'role': 'assistant', 'content': ai_final})
-        logger.warning("AI output tool call as final answer")
-
 
 if __name__ == "__main__":
     main()
