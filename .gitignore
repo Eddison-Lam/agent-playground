@@ -19,3 +19,5 @@ exports/
 
 # Environment variables
 .env
+
+.vscode/
