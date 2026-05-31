@@ -1,11 +1,11 @@
 # AI Assistant with RAG Memory
-
-A local AI Agent Playground built with **LangGraph**, featuring robust tool calling, persistent RAG memory, and stateful multi-step reasoning.
+### A local AI Agent Playground built with **LangGraph**, featuring robust tool calling, persistent RAG memory, and stateful multi-step reasoning.
 ---
 
 ## Features
 
 - **LangGraph Architecture** — Powered by LangGraph StateGraph for clear, controllable, and debuggable agent workflows
+- **Skill System** — Modular skills combining **Markdown prompts** + **Python implementations**, dynamically routed by Router Agent
 - **Persistent RAG Memory** — Long-term vector memory with export and management capabilities
 - **Advanced Tool Calling** — `web_search`, `python_sandbox`, and easily extensible tools
 - **Dynamic Tool Control** — Enable/disable tools at runtime
@@ -13,7 +13,18 @@ A local AI Agent Playground built with **LangGraph**, featuring robust tool call
 - **Slash Commands** — `/help`, `/tools`, `/export`, `/settings`, etc.
 - **Docker Support** — Easy deployment with sandbox environment
 - **Modular & Clean Codebase** — Well-structured for further development
----
+
+## Skill System
+
+This project uses a unique **hybrid skill architecture**:
+
+- Each skill consists of:
+  - A `.md` file containing the system prompt / behavior description
+  - A `.py` file containing the actual implementation logic
+- The **Router Agent** intelligently decides which skill to invoke
+- Current skills: `calculator`, `hong_kong_weather`, `web_search_general`
+
+This design makes it very easy to add new capabilities while keeping prompts clean and maintainable.
 
 ## Quick Start
 
@@ -51,7 +62,7 @@ python main.py
 | /help | Show all available commands|
 | /tools | Show current tool status |
 | /setting <tool> <?confirm> <on/off> | Enable or disable a tool (with confirm: set need_confirmation of a tool) |
-| /export [day|week|month|all] [keyword] | Export memories to Markdown |
+| /export [day/week/month/all] [keyword] | Export memories to Markdown |
 | /delete <mem_id> | Delete a specific memory |
 ### Examples
 ```bash

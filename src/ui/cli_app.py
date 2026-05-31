@@ -28,23 +28,26 @@ class ConversationSession(BaseSession):
         logger.info(f"User input: {user_input}")
 
         self.timer.start()
+        
         result = await self.agent.ainvoke({
             "messages": [HumanMessage(content=user_input)] + self.short_hist,
             "selected_skills": [],
             "step_count": 0
         })
+        
         elapsed = self.timer.stop()
 
-        ai_messages = [
-            msg for msg in result["messages"]
-            if isinstance(msg, AIMessage)
-            and not (hasattr(msg, "tool_calls") and msg.tool_calls)
-        ]
+        messages = result.get("messages", [])
+        ai_response = ""
 
-        if not ai_messages:
-            return {"status": "error", "output": "❌ No response from AI"}
+        for msg in reversed(messages):
+            if isinstance(msg, AIMessage):
+                if msg.content and msg.content.strip():
+                    ai_response = msg.content.strip()
+                    break
 
-        ai_response = ai_messages[-1].content
+        if not ai_response:
+            ai_response = "(No clear response from AI. Tool may have executed but no summary.)"
 
         self.short_hist.append(HumanMessage(content=user_input))
         self.short_hist.append(AIMessage(content=ai_response))
@@ -52,7 +55,6 @@ class ConversationSession(BaseSession):
         max_hist = int(os.getenv("AGENT_MAX_HISTORY", "10"))
         if len(self.short_hist) > max_hist:
             self.short_hist = self.short_hist[-max_hist:]
-
 
         model_name = os.getenv("LLM_MODEL", "qwen2.5:7b") 
         self.rag_manager.add_mem(
@@ -68,9 +70,8 @@ class ConversationSession(BaseSession):
             "status": "success",
             "ai_response": ai_response,
             "elapsed": elapsed,
-            "output": f"🤖 AI: {ai_response}\n⏱️  Response time: {elapsed:.2f}s\n"
+            "output": ai_response
         }
-
     async def start(self) -> None:
         """Start the CLI conversation loop."""
         print("🤖 Agent CLI started! Type 'quit' or 'exit' to leave.")
@@ -78,7 +79,7 @@ class ConversationSession(BaseSession):
         
         while True:
             try:
-                # 終端機獨有的阻塞式輸入
+                # Display timer and prompt
                 user_input = input("\nUser >>> ")
 
                 # handle_message in parallel with potential async agent calls
@@ -94,6 +95,7 @@ class ConversationSession(BaseSession):
                         print(res["output"])
                     case "success":
                         print(f"\nAI >>> {res['output']}") 
+                        print(f"⏱️  Response time: {res.get('elapsed', 0):.2f}s")
                     case _:
                         if res["output"]:
                             print(f"\nAI >>> {res['output']}")

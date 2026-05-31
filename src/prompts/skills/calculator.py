@@ -13,6 +13,4 @@ class CalculatorSkill(BaseSkill):
         )
     
     def get_instructions(self) -> str:
-        skill_dir = Path(__file__).parent
-        with open(skill_dir / "calculator.md", "r") as f:
-            return f.read()
+        return super().get_instructions()

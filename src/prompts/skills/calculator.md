@@ -2,7 +2,7 @@
 
 **When to use:** For ANY mathematical calculation or computation.
 
-**Tool to use:** python_sandbox
+**MUST use Tool:** `python_sandbox`
 
 **Critical:** MUST use print() to output results. Without print(), output is empty.
 

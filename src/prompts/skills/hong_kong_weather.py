@@ -15,6 +15,4 @@ class HongKongWeatherSkill(BaseSkill):
     
     def get_instructions(self) -> str:
         # ✅ 從 markdown 檔案讀取
-        skill_dir = Path(__file__).parent
-        with open(skill_dir / "hong_kong_weather.md", "r") as f:
-            return f.read()
+        return super().get_instructions()

@@ -25,8 +25,8 @@ rag_manager = rag.RAGManager(
 )
 
 command_handler = CommandHandler(rag_manager)
-agent = create_agent_graph(rag_manager)
 timer = TimerDisplay()
+agent = create_agent_graph(rag_manager, timer)
 print("🤖 AI Assistant started! Enter 'quit' or 'exit' to end.\n")
 print("Type /help for available commands.\n")
 
@@ -42,7 +42,6 @@ async def async_main():
         timer_display=timer
     )
     await session.start()
-
 
 if __name__ == "__main__":
     asyncio.run(async_main())

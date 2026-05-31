@@ -1,8 +1,7 @@
 """Agent nodes for LangGraph workflow."""
-import os
 import sys
 from datetime import datetime
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.prebuilt import ToolNode
 from .state import AgentState
 from .router_agent import RouterAgent
@@ -17,11 +16,12 @@ logger = get_logger("AgentNodes", subdir="agent")
 class AgentNodes:
     """Collection of agent processing nodes."""
     
-    def __init__(self, rag_manager):
+    def __init__(self, rag_manager, timer_display):
         """Initialize agent nodes."""
         self.llm = get_langchain_llm()
         self.rag_manager = rag_manager
-        self.router = RouterAgent()  # ✅ 使用 RouterAgent
+        self.router = RouterAgent()  
+        self.timer_display = timer_display
         logger.info("AgentNodes initialized")
     
     def router_node(self, state: AgentState) -> AgentState:
@@ -164,6 +164,10 @@ class AgentNodes:
         if not needs_confirm:
             return state  # tool calls exist but none require confirmation, exec tool
         
+        # Pause timer display if active while waiting for user confirmation
+        if self.timer_display:
+            self.timer_display.pause()
+
         # need confirmation, ask user
         print(f"\nThe following tool(s) require confirmation: (y/n)")
         for i, tool_call in enumerate(last_message.tool_calls, 1):
@@ -177,7 +181,11 @@ class AgentNodes:
                     print(f"      - {key}: {val}")
         
         confirm = input("\nAllow execution? (y/n): ").strip().lower()
-        
+
+        # Resume timer display after user confirmation
+        if self.timer_display: 
+            self.timer_display.resume()
+
         if confirm != 'y':
             logger.warning("User rejected tool execution")
             from langchain_core.messages import HumanMessage

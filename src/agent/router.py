@@ -10,72 +10,33 @@ load_dotenv()
 
 logger = get_logger("AgentRouter", subdir="agent")
 
-
-def route_after_agent(state: AgentState) -> Literal["tools", "end"]:
-    """
-    Route after agent call.
-
-    If AI wants to use tools AND step limit not reached → go to tools node
-    Otherwise → end
-
-    Args:
-        state: Current agent state
-
-    Returns:
-        Next node: "tools" or "end"
-    """
-    max_steps = int(os.getenv("AGENT_MAX_STEPS", "10"))
-    current_steps = state.get("step_count", 0)
-
-    # Check step limit
-    if current_steps >= max_steps:
-        logger.warning(f"Reached max steps ({current_steps}/{max_steps}), forcing end")
-        return "end"
-
-    # Check if last message has tool calls
+def route_after_agent_with_confirmation(state):
+    """Determine if user confirmation is needed"""
     last_message = state["messages"][-1]
-
-    if isinstance(last_message, AIMessage):
-        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            logger.info(f"Tool calls detected (step {current_steps}/{max_steps}), routing to tools")
-            return "tools"
-
-    logger.info(f"No tool calls (step {current_steps}/{max_steps}), routing to end")
-    return "end"
-
-def route_after_agent_with_confirmation(state: AgentState) -> Literal["confirm", "tools", "end"]:
-    """
-    Route after agent call, considering confirmation needs.
-    """
-    max_steps = int(os.getenv("AGENT_MAX_STEPS", "10"))
-    current_steps = state.get("step_count", 0)
-
-    # Check step limit
-    if current_steps >= max_steps:
-        logger.warning(f"Reached max steps ({current_steps}/{max_steps})")
+    
+    if not (isinstance(last_message, AIMessage) and last_message.tool_calls):
         return "end"
+    
+    # check if any tool call requires confirmation
+    from src.tools.manager import tool_manager
+    
+    for tool_call in last_message.tool_calls:
+        tool_name = tool_call.get("name")
+        tool = tool_manager.registry.get(tool_name)
+        
+        if tool and tool.info.needs_confirmation:
+            return "confirm"
+    
+    # there are tool calls but none require confirmation → execute directly
+    return "tools"
 
-    # Check if last message has tool calls
+
+def route_after_agent(state):
+    """normally called after user confirmation, determine if there are tool calls to execute"""
     last_message = state["messages"][-1]
-
-    if isinstance(last_message, AIMessage):
-        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            from src.tools.manager import tool_manager
-            
-            needs_confirm = False
-            for tool_call in last_message.tool_calls:
-                tool_name = tool_call.get("name")
-                tool = tool_manager.registry.get(tool_name)
-                
-                if tool and tool.info.needs_confirmation:
-                    needs_confirm = True
-                    logger.info(f"Tool '{tool_name}' needs confirmation")
-                    break
-            
-            if needs_confirm:
-                return "confirm"
-            else:
-                return "tools"
+    
+    if isinstance(last_message, AIMessage) and last_message.tool_calls:
+        return "tools"
     
     logger.info("No tool calls")
     return "end"
