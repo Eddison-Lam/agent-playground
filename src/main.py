@@ -2,6 +2,8 @@
 import sys
 from pathlib import Path
 import asyncio
+import threading
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -44,4 +46,6 @@ async def async_main():
     await session.start()
 
 if __name__ == "__main__":
+    tts_thread.start()
     asyncio.run(async_main())
+    tts_thread.join()
