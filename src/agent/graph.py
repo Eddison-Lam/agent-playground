@@ -30,6 +30,7 @@ def create_agent_graph(rag_manager, timer_display):
     workflow.add_node("agent", nodes.agent_with_tools)
     workflow.add_node("confirmation", nodes.check_confirmation_node)
     workflow.add_node("tools", nodes.execute_tools)
+    wo
     
     # Edges
     workflow.set_entry_point("router")

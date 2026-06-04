@@ -8,6 +8,7 @@ from .router_agent import RouterAgent
 from src.logger_utils import get_logger
 from src.llm.llm_factory import get_langchain_llm
 from src.tools.langchain_tools import get_langchain_tools
+import src.tts.tts_model as tts_model
 import src.config as config
 
 logger = get_logger("AgentNodes", subdir="agent")
@@ -196,6 +197,12 @@ class AgentNodes:
         
         logger.info("User approved tool execution")
         return state
+
+
+    def tts(self, state: AgentState) -> AgentState:
+        text = "Should be agent's respond"
+        output_filename = "tts_audio.wav"
+        tts_model.tts_and_play(text, output_filename)
 
     async def execute_tools(self, state: AgentState) -> AgentState:
         """Execute tools using LangGraph's ToolNode."""
