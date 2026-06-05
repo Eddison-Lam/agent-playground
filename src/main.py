@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 import asyncio
 import threading
+import tts.tts_model as tts
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -46,6 +47,10 @@ async def async_main():
     await session.start()
 
 if __name__ == "__main__":
+    tts_thread = threading.Thread(target=tts.tts_worker)
+    audio_player_thread = threading.Thread(target= tts.audio_player_worker)
     tts_thread.start()
+    audio_player_thread.start()
     asyncio.run(async_main())
     tts_thread.join()
+    audio_player_thread.join()

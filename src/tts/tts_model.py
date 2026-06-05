@@ -2,6 +2,7 @@ import soundfile as sf
 from kokoro import Kokoro
 from transformers import pipeline
 import pyaudio 
+import queue
 
 def play_audio(filename):
     """Initializes pygame mixer and plays the audio file."""
@@ -48,6 +49,8 @@ def tts_and_play(text, output_filename="output.wav", voice_preset="af_bella"):
         print("Error: Audio file was not generated.")
 
 def tts_worker():
+    text_queue = 
+    audio_queue = queue.Queue()
     while True:
             text_chunk = text_queue.get()
             if text_chunk is None:  # Exit signal
