@@ -1,0 +1,32 @@
+{"tools": [
+  {
+    "type": "function",
+    "function": {
+      "name": "calculator",
+      "description": "Use this to evaluate mathematical expressions.",
+      "parameters": {
+        "expression": {"type": "string", "description": "The math equation"}
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "web_search",
+      "description": "Use this to find current events or real-time information on the internet.",
+      "parameters": {
+        "query": {"type": "string", "description": "The search query"}
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "Command_line",
+      "description": "Use this to execute a command.",
+      "parameters": {
+        "query": {"type": "string", "description": "The command to execute"}
+      }
+    }
+  }
+]}

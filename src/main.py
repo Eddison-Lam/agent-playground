@@ -4,7 +4,7 @@ from pathlib import Path
 import asyncio
 import threading
 import tts.tts_model as tts
-
+import queue
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -47,8 +47,9 @@ async def async_main():
     await session.start()
 
 if __name__ == "__main__":
-    tts_thread = threading.Thread(target=tts.tts_worker)
-    audio_player_thread = threading.Thread(target= tts.audio_player_worker)
+    text_pipeline = queue.Queue()
+    tts_thread = threading.Thread(target=tts.tts_worker, args=(text_pipeline,))
+    audio_player_thread = threading.Thread(target= tts.audio_player_worker, args=(text_pipeline,))
     tts_thread.start()
     audio_player_thread.start()
     asyncio.run(async_main())
